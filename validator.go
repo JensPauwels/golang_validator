@@ -92,3 +92,51 @@ func (instance Validator) validateReqBody(requestBody io.Reader) ([]string, map[
 
 	return errs, jsonData
 }
+
+func (instance Validator) validateAndMarshalBody(requestBody io.Reader, val interface{}) []string {
+	body, _ := io.ReadAll(requestBody)
+	jsonData := map[string]interface{}{}
+	errs := []string{}
+
+	if err := json.Unmarshal(body, &jsonData); err != nil {
+		errs = append(errs, "Failed to unmarshal body to json.\n")
+		return errs
+	}
+
+	for key, validationType := range instance {
+		if match, ok := jsonData[key]; ok {
+			switch validationType {
+			case "string":
+				if !instance.ValidateString(match) {
+					errs = append(errs, key+" is not of type string.\n")
+				}
+				break
+			case "int":
+				if !instance.ValidateInteger(match) {
+					errs = append(errs, key+" is not of type int.\n")
+				}
+				break
+			case "uuid":
+				if !instance.ValidateV4UUID(match) {
+					errs = append(errs, key+" is not of type uuid.\n")
+				}
+				break
+			default:
+				errs = append(errs, "Unknown validation type.\n")
+			}
+		} else {
+			errs = append(errs, key+" was not found in the body.\n")
+		}
+	}
+
+	if len(errs) == 0 {
+		encoded, _ := json.Marshal(jsonData)
+		err := json.Unmarshal(encoded, &val)
+
+		if err != nil {
+			errs = append(errs, "failed to marshal json body")
+		}
+	}
+
+	return errs
+}

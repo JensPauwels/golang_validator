@@ -7,24 +7,26 @@ import (
 )
 
 type User struct {
-	Username string
-	Age      int
-	Id       string
+	Username string `json:"username"`
+	Age      int    `json:"age"`
+	Id       string `json:"id"`
 }
 
 func handleTest(c *gin.Context) {
-	errs, body := Validator{
+	user := User{}
+
+	errs := Validator{
 		"username": "string",
 		"age":      "int",
 		"id":       "uuid",
-	}.validateReqBody(c.Request.Body)
-
-	fmt.Print(body)
+	}.validateAndMarshalBody(c.Request.Body, &user)
 
 	if len(errs) != 0 {
 		c.JSON(400, gin.H{})
 		return
 	}
+
+	fmt.Print(user)
 
 	c.JSON(200, gin.H{})
 }
